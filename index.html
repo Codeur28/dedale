@@ -1,0 +1,1150 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Dédale des Jardins : un jeu de labyrinthe en 70 niveaux, en solo ou jusqu'à 4 joueurs.">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Dédale des Jardins</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Outfit:wght@400;500;600&display=swap">
+<style>
+/* Layout : une colonne de jardinier — en-tête, choix des joueurs, tableau de bord, plateau, puis le carnet des 7 chapitres. */
+:root {
+  --bg: #e7eadc;
+  --panel: #f5f6ee;
+  --ink: #1c2a1f;
+  --muted: #5b6a5a;
+  --line: #c9cfba;
+  --hedge: #2f5b39;
+  --hedge-hi: #3f7349;
+  --path: #ddd3b6;
+  --trail: #b9ab84;
+  --lantern: #df8418;
+  --key: #c49a12;
+  --danger: #b0364a;
+  --exit: #2f8a83;
+  --fog: #101813;
+  --mud: #7d5a30;
+  --gate: #6f9a1f;
+  --portal: #4f63b8;
+  --mirror: #6f7f8f;
+  --fly: #93c11a;
+  --p1: #df8418;
+  --p2: #2f63c9;
+  --p3: #8a3fb3;
+  --p4: #c43f8a;
+  --font-display: "Young Serif", Georgia, "Times New Roman", serif;
+  --font-body: "Outfit", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1511; --panel: #16201a; --ink: #e4eadc; --muted: #93a292; --line: #2a372d;
+    --hedge: #3a7347; --hedge-hi: #4c8a59; --path: #1f2a22; --trail: #4a5a43;
+    --lantern: #f39d34; --key: #e3bd45; --danger: #e05d71; --exit: #45b3aa; --fog: #070b08;
+    --mud: #6b4c26; --gate: #9cc93f; --portal: #8fa3ff; --mirror: #b8c4d0; --fly: #d4f25a;
+    --p1: #f39d34; --p2: #6c9bff; --p3: #b77ae0; --p4: #ee6fb2;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1511; --panel: #16201a; --ink: #e4eadc; --muted: #93a292; --line: #2a372d;
+  --hedge: #3a7347; --hedge-hi: #4c8a59; --path: #1f2a22; --trail: #4a5a43;
+  --lantern: #f39d34; --key: #e3bd45; --danger: #e05d71; --exit: #45b3aa; --fog: #070b08;
+  --mud: #6b4c26; --gate: #9cc93f; --portal: #8fa3ff; --mirror: #b8c4d0; --fly: #d4f25a;
+  --p1: #f39d34; --p2: #6c9bff; --p3: #b77ae0; --p4: #ee6fb2;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 20px 40px;
+}
+.wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+h1 { font-family: var(--font-display); font-weight: 400; font-size: 2.1rem; margin: 0; letter-spacing: -0.01em; color: var(--hedge); }
+:root .sub { margin: 0; color: var(--muted); font-size: 0.95rem; }
+.mode { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.mode .eyebrow { margin-right: 4px; }
+.mode button[aria-pressed="true"] { background: var(--hedge); color: var(--panel); border-color: var(--hedge); }
+.hud {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+}
+.lvl { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.eyebrow { text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.72rem; color: var(--muted); font-weight: 600; }
+#lvlName { font-family: var(--font-display); font-size: 1.25rem; }
+.stats { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.stat { display: flex; flex-direction: column; gap: 1px; }
+.stat .lab { text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.68rem; color: var(--muted); font-weight: 600; }
+.stat .val { font-size: 1.15rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat .val.warn { color: var(--danger); }
+button {
+  font: inherit; font-weight: 500; cursor: pointer; border-radius: 8px; padding: 8px 14px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+}
+button:hover { border-color: var(--hedge); }
+button:focus-visible { outline: 2px solid var(--lantern); outline-offset: 2px; }
+button.primary { background: var(--hedge); color: var(--panel); border-color: var(--hedge); }
+button.primary:hover { background: var(--hedge-hi); }
+.players { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.pl { display: flex; align-items: center; gap: 9px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); min-width: 0; }
+.pl.done { opacity: 0.6; }
+.dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+.pl .meta { display: flex; flex-direction: column; min-width: 0; }
+.pl .nm { font-weight: 600; font-size: 0.88rem; }
+.pl .ct { font-size: 0.74rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl .st { margin-left: auto; font-size: 0.8rem; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pl .st b { color: var(--key); }
+.pl .inv { color: var(--mirror); font-weight: 600; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 0.78rem; font-weight: 500; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.tag.fog { color: var(--ink); border-color: var(--muted); }
+.tag.key { color: var(--key); border-color: var(--key); }
+.tag.timer { color: var(--lantern); border-color: var(--lantern); }
+.tag.ghost { color: var(--danger); border-color: var(--danger); }
+.tag.portal { color: var(--portal); border-color: var(--portal); }
+.tag.mud { color: var(--mud); border-color: var(--mud); }
+.tag.gate { color: var(--gate); border-color: var(--gate); }
+.tag.mirror { color: var(--mirror); border-color: var(--mirror); }
+.tag.fly { color: var(--fly); border-color: var(--fly); }
+.tag.inv { color: var(--panel); background: var(--mirror); border-color: var(--mirror); }
+.board { position: relative; display: flex; justify-content: center; touch-action: none; }
+canvas { display: block; max-width: 100%; border-radius: 6px; touch-action: none; }
+.overlay {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px;
+  background: color-mix(in srgb, var(--fog) 55%, transparent);
+}
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 22px 18px;
+  max-width: 380px; width: 100%; display: flex; flex-direction: column; gap: 10px; text-align: center;
+  box-shadow: 0 18px 40px rgba(0,0,0,0.3);
+}
+.card h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; margin: 0; text-wrap: balance; }
+.card p { margin: 0; color: var(--muted); line-height: 1.45; }
+.card ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.card li { display: flex; align-items: center; gap: 8px; font-size: 0.92rem; }
+.card li .r { font-family: var(--font-display); width: 2.2em; flex: none; }
+.card li .x { margin-left: auto; color: var(--muted); font-size: 0.82rem; font-variant-numeric: tabular-nums; }
+.card .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 6px; }
+.dpad { display: none; grid-template-columns: repeat(3, 64px); grid-template-rows: repeat(2, 56px); gap: 8px; justify-content: center; user-select: none; }
+.dpad button { font-size: 1.3rem; padding: 0; touch-action: none; }
+.dpad .u { grid-column: 2; grid-row: 1; }
+.dpad .l { grid-column: 1; grid-row: 2; }
+.dpad .d { grid-column: 2; grid-row: 2; }
+.dpad .r { grid-column: 3; grid-row: 2; }
+@media (pointer: coarse) { .dpad { display: grid; } }
+.levels { display: flex; flex-direction: column; gap: 16px; }
+.levels > h2 { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; margin: 6px 0 0; }
+.chap { display: flex; flex-direction: column; gap: 8px; }
+.chap-h { display: flex; align-items: baseline; gap: 4px 10px; flex-wrap: wrap; }
+.chap-h b { font-family: var(--font-display); font-weight: 400; font-size: 1.08rem; }
+.chap-h .desc { color: var(--muted); font-size: 0.85rem; }
+.chap-h .cnt { margin-left: auto; color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 560px) { .grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.lv { display: flex; flex-direction: column; align-items: center; gap: 0; padding: 6px 2px; min-width: 0; }
+.lv .n { font-family: var(--font-display); font-size: 1.05rem; color: var(--hedge); }
+.lv .bt { font-size: 0.66rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.lv.won { background: color-mix(in srgb, var(--hedge) 12%, var(--bg)); }
+.lv.cur { border-color: var(--lantern); box-shadow: inset 0 0 0 1px var(--lantern); }
+.lv:disabled { opacity: 0.4; cursor: not-allowed; }
+.lv:disabled:hover { border-color: var(--line); }
+.help { color: var(--muted); font-size: 0.88rem; line-height: 1.5; margin: 0; }
+kbd { font-family: var(--font-body); font-size: 0.8rem; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--panel); color: var(--ink); }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Dédale des Jardins</h1>
+    <p class="sub">Soixante-dix jardins en sept chapitres, chacun plus retors que le précédent.</p>
+  </header>
+
+  <div class="mode" role="group" aria-label="Nombre de joueurs">
+    <span class="eyebrow">Joueurs</span>
+    <button type="button" id="mode1" data-n="1">Solo</button>
+    <button type="button" id="mode2" data-n="2">2 joueurs</button>
+    <button type="button" id="mode3" data-n="3">3 joueurs</button>
+    <button type="button" id="mode4" data-n="4">4 joueurs</button>
+  </div>
+
+  <section class="hud" aria-label="Tableau de bord">
+    <div class="lvl">
+      <span class="eyebrow" id="lvlEyebrow">Chapitre 1 · Niveau 1 / 70</span>
+      <span id="lvlName">Le Potager</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><span class="lab" id="timeLab">Temps</span><span class="val" id="time">0,0 s</span></div>
+      <div class="stat" id="keysStat"><span class="lab" id="keysLab">Clés</span><span class="val" id="keys">0 / 0</span></div>
+      <button id="restart" type="button">Recommencer</button>
+    </div>
+  </section>
+
+  <div class="players" id="players" hidden></div>
+
+  <div class="tags" id="tags"></div>
+
+  <div class="board" id="board">
+    <canvas id="cv" aria-label="Plateau du labyrinthe"></canvas>
+    <div class="overlay" id="ov" hidden>
+      <div class="card">
+        <h2 id="ovTitle"></h2>
+        <p id="ovText"></p>
+        <ol id="ovList" hidden></ol>
+        <div class="row" id="ovBtns"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dpad" aria-label="Croix directionnelle du joueur 1">
+    <button class="u" type="button" data-dir="1" aria-label="Haut">▲</button>
+    <button class="l" type="button" data-dir="8" aria-label="Gauche">◀</button>
+    <button class="d" type="button" data-dir="4" aria-label="Bas">▼</button>
+    <button class="r" type="button" data-dir="2" aria-label="Droite">▶</button>
+  </div>
+
+  <p class="help" id="helpSolo">
+    Guide la lanterne jusqu'à la grille verte. Déplacements : <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> ou <kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd>.
+    Glisse sur le plateau pour courir jusqu'au prochain carrefour. <kbd>R</kbd> recommence le niveau.
+    Chaque chapitre ajoute une mécanique : clés, brume, cadran et veilleurs, puis portails, boue, haies mouvantes, miroirs et lucioles.
+  </p>
+  <p class="help" id="helpMulti" hidden>
+    Tous sur le même clavier. Joueur 1 : <kbd>Z</kbd><kbd>Q</kbd><kbd>S</kbd><kbd>D</kbd>. Joueur 2 : <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>.
+    Joueur 3 : <kbd>I</kbd><kbd>J</kbd><kbd>K</kbd><kbd>L</kbd>. Joueur 4 : <kbd>T</kbd><kbd>F</kbd><kbd>G</kbd><kbd>H</kbd>.
+    Il y a au moins une clé par joueur, et chacun peut en ramasser plusieurs. Dès que l'équipe a toutes les clés, la grille s'ouvre, où que soient les joueurs.
+    Le jardin est traversé quand tout le monde est sorti. Un veilleur qui attrape un joueur le renvoie à l'entrée, sans lui prendre ses clés.
+    <kbd>R</kbd> recommence le niveau.
+  </p>
+
+  <section class="levels" id="levels">
+    <h2>Les soixante-dix jardins</h2>
+  </section>
+</div>
+
+<script>
+(() => {
+  // ---------- Chapitres et niveaux ----------
+  const CHAPTERS = [
+    { name: "Les Jardins", desc: "Clés, brume, cadran et veilleurs." },
+    { name: "Les Portails", desc: "Les arches d'argent mènent à l'autre bout du jardin." },
+    { name: "Les Marais", desc: "La boue ralentit chaque pas." },
+    { name: "Les Haies mouvantes", desc: "Des haies s'ouvrent et se ferment en rythme." },
+    { name: "Le Jardin des Miroirs", desc: "Les commandes s'inversent." },
+    { name: "La Nuit des Lucioles", desc: "Nuit noire : les lucioles éclairent plus loin." },
+    { name: "Le Grand Dédale", desc: "Tout à la fois, dans les plus grands jardins." },
+  ];
+  const INTRO = {
+    portals: ["Nouveau : les portails", "Marche sur une arche d'argent et tu ressors par l'arche qui porte le même numéro."],
+    mud: ["Nouveau : la boue", "Les flaques brunes ralentissent tes pas. Contourne-les quand tu peux, surtout avec le cadran ou les veilleurs."],
+    gates: ["Nouveau : les haies mouvantes", "Les haies vert clair s'ouvrent et se ferment en rythme. Elles clignotent juste avant de se refermer."],
+    invert: ["Nouveau : l'envers", "Dans ce jardin, tes commandes sont inversées : haut devient bas, gauche devient droite."],
+    mirrors: ["Nouveau : les miroirs", "Chaque losange argenté inverse tes commandes, ou les remet à l'endroit."],
+    flies: ["Nouveau : les lucioles", "La nuit est noire. Attrape les lucioles vertes pour éclairer plus loin pendant quelques secondes."],
+  };
+  // L(nom, largeur, hauteur, options)
+  const L = (name, w, h, o = {}) => Object.assign({ name, w, h }, o);
+  const LEVELS = [
+    // Chapitre 1 : Les Jardins
+    L("Le Potager", 8, 8),
+    L("Les Buis", 11, 11),
+    L("La Roseraie", 14, 14),
+    L("La Grille rouillée", 16, 16, { keys: 1 }),
+    L("Brume du matin", 18, 18, { fog: 4 }),
+    L("La Serre noyée", 20, 20, { fog: 3.5, keys: 1 }),
+    L("Le Cadran solaire", 22, 22, { keys: 2, timer: 0.30 }),
+    L("Les Veilleurs", 24, 24, { fog: 3.5, keys: 2, ghosts: 2, braid: 0.3, gs: 0.42 }),
+    L("La Ronde", 26, 26, { keys: 2, ghosts: 4, braid: 0.35, gs: 0.36, timer: 0.30, chase: 0.35 }),
+    L("Le Cœur du dédale", 28, 28, { fog: 3, keys: 3, ghosts: 4, braid: 0.35, gs: 0.34, timer: 0.32, chase: 0.5 }),
+    // Chapitre 2 : Les Portails
+    L("Le Puits d'argent", 14, 14, { portals: 1, intro: "portals" }),
+    L("Les Deux Fontaines", 16, 16, { portals: 2 }),
+    L("L'Allée des arches", 18, 14, { portals: 2, keys: 1 }),
+    L("Le Jardin en écho", 18, 18, { portals: 3, fog: 4 }),
+    L("La Pergola", 20, 16, { portals: 3, keys: 2 }),
+    L("Les Bassins jumeaux", 20, 20, { portals: 3, timer: 0.32 }),
+    L("Le Cloître", 22, 18, { portals: 4, keys: 2, fog: 3.5 }),
+    L("Les Sources", 22, 22, { portals: 4, ghosts: 2, braid: 0.3, gs: 0.45 }),
+    L("Le Miroir d'eau", 24, 20, { portals: 4, keys: 2, timer: 0.30 }),
+    L("La Porte des lunes", 24, 24, { portals: 5, keys: 3, fog: 3.5, ghosts: 2, braid: 0.3, gs: 0.42 }),
+    // Chapitre 3 : Les Marais
+    L("Le Ru boueux", 16, 16, { mud: 0.15, intro: "mud" }),
+    L("Les Roseaux", 18, 16, { mud: 0.2, keys: 1 }),
+    L("La Tourbière", 20, 18, { mud: 0.22, timer: 0.32 }),
+    L("Les Nénuphars", 20, 20, { mud: 0.22, ghosts: 2, braid: 0.3, gs: 0.45 }),
+    L("Le Gué", 22, 18, { mud: 0.25, keys: 2, fog: 4 }),
+    L("La Saulaie", 22, 22, { mud: 0.25, ghosts: 3, braid: 0.3, gs: 0.42, timer: 0.34 }),
+    L("Les Joncs", 24, 20, { mud: 0.28, keys: 2, portals: 2 }),
+    L("Le Marécage", 24, 24, { mud: 0.28, fog: 3.5, ghosts: 2, braid: 0.3, gs: 0.42 }),
+    L("La Brume des marais", 26, 22, { mud: 0.3, keys: 2, fog: 3.5, timer: 0.34 }),
+    L("Le Cœur de la vase", 26, 26, { mud: 0.3, keys: 3, ghosts: 4, braid: 0.35, gs: 0.38, chase: 0.3, timer: 0.36 }),
+    // Chapitre 4 : Les Haies mouvantes
+    L("La Haie qui respire", 16, 16, { gates: 6, intro: "gates" }),
+    L("Les Volets verts", 18, 18, { gates: 10 }),
+    L("Le Portillon", 20, 16, { gates: 12, keys: 1 }),
+    L("Les Battants", 20, 20, { gates: 14, timer: 0.34 }),
+    L("La Valse des buis", 22, 20, { gates: 16, fog: 4 }),
+    L("Les Écluses", 22, 22, { gates: 18, keys: 2, ghosts: 2, braid: 0.3, gs: 0.42 }),
+    L("Le Métronome", 24, 20, { gates: 20, timer: 0.32, portals: 2 }),
+    L("Les Persiennes", 24, 24, { gates: 22, mud: 0.15, keys: 2 }),
+    L("Le Mécanisme", 26, 22, { gates: 24, ghosts: 3, braid: 0.3, gs: 0.4, fog: 3.5 }),
+    L("L'Horloge des haies", 26, 26, { gates: 28, keys: 3, timer: 0.34, ghosts: 3, braid: 0.3, gs: 0.38, chase: 0.3 }),
+    // Chapitre 5 : Le Jardin des Miroirs
+    L("Le Reflet", 14, 14, { invert: true, intro: "invert" }),
+    L("L'Envers", 16, 16, { invert: true, keys: 1 }),
+    L("Les Psychés", 18, 18, { mirrors: 4, intro: "mirrors" }),
+    L("La Galerie", 20, 16, { mirrors: 6, keys: 1 }),
+    L("Le Palais des glaces", 20, 20, { mirrors: 6, portals: 2 }),
+    L("Le Tain", 22, 20, { invert: true, fog: 4, keys: 2 }),
+    L("Les Faces cachées", 22, 22, { mirrors: 8, timer: 0.34 }),
+    L("Le Kaléidoscope", 24, 22, { mirrors: 8, portals: 3, gates: 12 }),
+    L("Le Double", 24, 24, { mirrors: 10, ghosts: 3, braid: 0.3, gs: 0.42, keys: 2 }),
+    L("La Chambre aux miroirs", 26, 26, { invert: true, mirrors: 10, keys: 3, fog: 3.5, ghosts: 3, braid: 0.3, gs: 0.4 }),
+    // Chapitre 6 : La Nuit des Lucioles
+    L("Le Crépuscule", 18, 18, { fog: 2.8, flies: 6, intro: "flies" }),
+    L("Les Lanternes", 20, 18, { fog: 2.6, flies: 6, keys: 1 }),
+    L("Minuit", 20, 20, { fog: 2.5, flies: 7, keys: 2 }),
+    L("Les Feux follets", 22, 20, { fog: 2.5, flies: 7, ghosts: 2, braid: 0.3, gs: 0.44 }),
+    L("La Nuit sans lune", 22, 22, { fog: 2.3, flies: 8, timer: 0.36 }),
+    L("Les Ombres", 24, 22, { fog: 2.4, flies: 8, portals: 3, keys: 2 }),
+    L("Le Sommeil des fleurs", 24, 24, { fog: 2.3, flies: 8, mud: 0.2, ghosts: 2, braid: 0.3, gs: 0.42 }),
+    L("Les Phalènes", 26, 22, { fog: 2.3, flies: 9, gates: 16, keys: 2 }),
+    L("L'Heure bleue", 26, 26, { fog: 2.2, flies: 9, mirrors: 6, timer: 0.36 }),
+    L("Le Bal des lucioles", 28, 26, { fog: 2.2, flies: 10, keys: 3, ghosts: 4, braid: 0.35, gs: 0.38, chase: 0.35 }),
+    // Chapitre 7 : Le Grand Dédale
+    L("La Porte du Grand Dédale", 28, 22, { keys: 2, portals: 3, mud: 0.15, gates: 12 }),
+    L("Les Terrasses", 30, 22, { keys: 2, fog: 3, ghosts: 3, braid: 0.3, gs: 0.38, timer: 0.34 }),
+    L("L'Orangerie", 30, 24, { portals: 4, mirrors: 6, keys: 3, gates: 16 }),
+    L("Les Catacombes vertes", 30, 26, { fog: 2.6, flies: 8, mud: 0.2, ghosts: 3, braid: 0.3, gs: 0.38, keys: 2 }),
+    L("Le Parterre royal", 32, 24, { gates: 24, portals: 4, keys: 3, timer: 0.32, ghosts: 3, braid: 0.3, gs: 0.38 }),
+    L("Les Jardins suspendus", 32, 28, { invert: true, mirrors: 8, keys: 3, fog: 3 }),
+    L("La Grande Perspective", 36, 24, { keys: 3, mud: 0.22, ghosts: 4, braid: 0.35, gs: 0.36, chase: 0.35, timer: 0.34 }),
+    L("Le Labyrinthe de Minuit", 34, 30, { fog: 2.4, flies: 10, gates: 20, portals: 4, keys: 3, ghosts: 3, braid: 0.3, gs: 0.38 }),
+    L("L'Avant-dernier pas", 36, 30, { keys: 4, mud: 0.25, mirrors: 8, gates: 24, ghosts: 4, braid: 0.35, gs: 0.35, chase: 0.4, timer: 0.35 }),
+    L("Le Centre du monde", 38, 32, { keys: 4, fog: 2.6, flies: 10, portals: 4, gates: 24, mud: 0.2, mirrors: 6, ghosts: 5, braid: 0.35, gs: 0.34, chase: 0.45, timer: 0.38 }),
+  ];
+  const NL = LEVELS.length;
+
+  const N = 1, E = 2, S = 4, W = 8;
+  const DIRS = [N, E, S, W];
+  const DX = { 1: 0, 2: 1, 4: 0, 8: -1 };
+  const DY = { 1: -1, 2: 0, 4: 1, 8: 0 };
+  const OPP = { 1: 4, 2: 8, 4: 1, 8: 2 };
+  const STEP = 0.085;     // secondes par case
+  const MUD_SLOW = 3.5;   // la boue multiplie le temps d'un pas
+  const GATE_PERIOD = 3.2, GATE_OPEN = 0.55;
+  const FLY_TIME = 9, FLY_BOOST = 1.9;
+
+  // Joueurs et touches
+  const SOLO_MAP = { ArrowUp: N, ArrowDown: S, ArrowLeft: W, ArrowRight: E, z: N, w: N, s: S, q: W, a: W, d: E };
+  const PLAYERS = [
+    { name: "Joueur 1", ctrl: "Z Q S D", map: { z: N, w: N, q: W, a: W, s: S, d: E } },
+    { name: "Joueur 2", ctrl: "Flèches", map: { ArrowUp: N, ArrowDown: S, ArrowLeft: W, ArrowRight: E } },
+    { name: "Joueur 3", ctrl: "I J K L", map: { i: N, j: W, k: S, l: E } },
+    { name: "Joueur 4", ctrl: "T F G H", map: { t: N, f: W, g: S, h: E } },
+  ];
+
+  function rng(seed) {
+    return function () {
+      seed |= 0; seed = (seed + 0x6D2B79F5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const bits = v => (v & 1) + ((v >> 1) & 1) + ((v >> 2) & 1) + ((v >> 3) & 1);
+
+  // ---------- Génération ----------
+  function generate(idx, nPlayers = 1) {
+    const cfg = LEVELS[idx];
+    const w = cfg.w, h = cfg.h, r = rng(1000 + idx * 7919);
+    const inb = (x, y) => x >= 0 && y >= 0 && x < w && y < h;
+    const walls = new Uint8Array(w * h).fill(15);
+    const seen = new Uint8Array(w * h);
+    const stack = [0]; seen[0] = 1;
+    while (stack.length) {
+      const c = stack[stack.length - 1], x = c % w, y = (c / w) | 0;
+      const opts = DIRS.filter(d => inb(x + DX[d], y + DY[d]) && !seen[(y + DY[d]) * w + x + DX[d]]);
+      if (!opts.length) { stack.pop(); continue; }
+      const d = opts[(r() * opts.length) | 0], n = (y + DY[d]) * w + x + DX[d];
+      walls[c] &= ~d; walls[n] &= ~OPP[d]; seen[n] = 1; stack.push(n);
+    }
+    if (cfg.braid) {
+      for (let c = 0; c < w * h; c++) {
+        if (bits(walls[c]) === 3 && r() < cfg.braid) {
+          const x = c % w, y = (c / w) | 0;
+          const opts = DIRS.filter(d => (walls[c] & d) && inb(x + DX[d], y + DY[d]));
+          if (opts.length) {
+            const d = opts[(r() * opts.length) | 0], n = (y + DY[d]) * w + x + DX[d];
+            walls[c] &= ~d; walls[n] &= ~OPP[d];
+          }
+        }
+      }
+    }
+    const m = { w, h, walls, start: 0, exit: w * h - 1, cfg };
+    const dStart = bfs(m, 0);
+    const maxD = Math.max(...dStart);
+    const man = (a, b) => Math.abs(a % w - b % w) + Math.abs(((a / w) | 0) - ((b / w) | 0));
+    const span = Math.min(w, h);
+
+    // Clés : au moins une par joueur en multi, dans des culs-de-sac lointains et espacés
+    const nKeys = Math.max(cfg.keys || 0, nPlayers > 1 ? nPlayers : 0);
+    const keys = [];
+    if (nKeys) {
+      let cands = [];
+      for (let c = 1; c < w * h - 1; c++) if (bits(walls[c]) === 3) cands.push(c);
+      if (cands.length < nKeys * 3) cands = [...Array(w * h - 2).keys()].map(i => i + 1);
+      cands.sort((a, b) => dStart[b] - dStart[a]);
+      const pool = cands.slice(0, Math.max(nKeys * 4, Math.ceil(cands.length * 0.5)));
+      let guard = 0, minSep = Math.floor(span / 2);
+      while (keys.length < nKeys && guard++ < 4000) {
+        const c = pool[(r() * pool.length) | 0];
+        if (keys.includes(c) || man(c, m.exit) < 3) continue;
+        if (keys.some(k => man(k, c) < minSep)) { if (guard % 200 === 0 && minSep > 1) minSep--; continue; }
+        keys.push(c);
+      }
+    }
+    // Veilleurs : loin du départ
+    const ghosts = [];
+    for (let i = 0; i < (cfg.ghosts || 0); i++) {
+      let c, guard = 0;
+      do { c = (r() * w * h) | 0; } while (guard++ < 1000 && (dStart[c] < maxD * 0.35 || man(c, 0) < span / 3 || ghosts.includes(c) || keys.includes(c)));
+      ghosts.push(c);
+    }
+
+    const used = new Set([0, m.exit, ...keys, ...ghosts]);
+    // Portails : uniquement dans des culs-de-sac, pour ne jamais couper un passage
+    const portalMap = new Map(), portalPairs = [];
+    if (cfg.portals) {
+      const de = [];
+      for (let c = 1; c < w * h - 1; c++) if (bits(walls[c]) === 3 && !used.has(c)) de.push(c);
+      let sep = Math.floor(span / 2), guard = 0;
+      while (portalPairs.length < cfg.portals && guard++ < 3000 && de.length >= 2) {
+        const a = de[(r() * de.length) | 0], b = de[(r() * de.length) | 0];
+        if (a === b || used.has(a) || used.has(b)) continue;
+        if (man(a, b) < sep) { if (guard % 150 === 0 && sep > 2) sep--; continue; }
+        portalPairs.push([a, b]); portalMap.set(a, b); portalMap.set(b, a); used.add(a); used.add(b);
+      }
+    }
+    // Boue : des flaques qui suivent les allées
+    const mud = new Uint8Array(w * h);
+    if (cfg.mud) {
+      const target = Math.round(w * h * cfg.mud);
+      let count = 0, guard = 0;
+      while (count < target && guard++ < 2000) {
+        let c = (r() * w * h) | 0;
+        const size = 3 + ((r() * 6) | 0);
+        for (let s = 0; s < size && count < target; s++) {
+          if (!used.has(c) && !mud[c]) { mud[c] = 1; count++; }
+          const od = DIRS.filter(d => !(walls[c] & d));
+          const d = od[(r() * od.length) | 0];
+          c = c + DX[d] + DY[d] * w;
+        }
+      }
+    }
+    // Haies mouvantes : sur des passages ouverts (jamais à l'entrée)
+    const gates = [], gateMap = new Map();
+    if (cfg.gates) {
+      const edges = [];
+      for (let c = 0; c < w * h; c++) for (const d of [E, S]) if (!(walls[c] & d) && c !== 0) edges.push([c, d]);
+      let guard = 0;
+      while (gates.length < cfg.gates && guard++ < 3000 && edges.length) {
+        const [c, d] = edges[(r() * edges.length) | 0];
+        const n = c + DX[d] + DY[d] * w;
+        if (gateMap.has(c * 16 + d) || n === 0) continue;
+        const g = { c, d, off: r() * GATE_PERIOD };
+        gates.push(g); gateMap.set(c * 16 + d, g); gateMap.set(n * 16 + OPP[d], g);
+      }
+    }
+    // Miroirs et lucioles
+    const pickFree = (count, minSep) => {
+      const out = []; let guard = 0, sep = minSep;
+      while (out.length < count && guard++ < 3000) {
+        const c = (r() * w * h) | 0;
+        if (used.has(c) || portalMap.has(c)) continue;
+        if (out.some(o => man(o, c) < sep)) { if (guard % 150 === 0 && sep > 1) sep--; continue; }
+        out.push(c); used.add(c);
+      }
+      return out;
+    };
+    const mirrors = cfg.mirrors ? pickFree(cfg.mirrors, Math.floor(span / 3)) : [];
+    const flies = cfg.flies ? pickFree(cfg.flies, Math.floor(span / 3)) : [];
+
+    // Longueur d'un parcours glouton (clés puis sortie) pour le chrono
+    let tour = 0, cur = 0, left = keys.slice();
+    while (left.length) {
+      const d = bfs(m, cur);
+      left.sort((a, b) => d[a] - d[b]);
+      tour += d[left[0]]; cur = left.shift();
+    }
+    tour += bfs(m, cur)[m.exit];
+    m.keys = keys; m.ghostStarts = ghosts;
+    m.portalMap = portalMap; m.portalPairs = portalPairs;
+    m.mud = mud; m.gates = gates; m.gateMap = gateMap;
+    m.mirrors = mirrors; m.mirrorSet = new Set(mirrors); m.flies = flies;
+    m.tour = tour;
+    m.limit = cfg.timer ? Math.round(tour * cfg.timer * (1 + (cfg.mud || 0) * 2.5) + 12 + (cfg.gates ? 10 : 0) + (cfg.invert || cfg.mirrors ? 10 : 0)) : 0;
+    return m;
+  }
+
+  // Parcours en largeur sur les murs fixes (les haies mouvantes finissent toujours par s'ouvrir)
+  function bfs(m, from) {
+    const d = new Int32Array(m.w * m.h).fill(-1);
+    const q = [from]; d[from] = 0;
+    for (let i = 0; i < q.length; i++) {
+      const c = q[i];
+      for (const dir of DIRS) {
+        if (m.walls[c] & dir) continue;
+        const n = c + DX[dir] + DY[dir] * m.w;
+        if (d[n] < 0) { d[n] = d[c] + 1; q.push(n); }
+      }
+    }
+    return d;
+  }
+
+  // ---------- Progression (navigateur du joueur) ----------
+  const STORE = "dedale-jardins-v1";
+  function loadProgress() {
+    try { const p = JSON.parse(localStorage.getItem(STORE)); if (p && p.unlocked) return Object.assign({ players: 1, best: {}, won: {} }, p); } catch (e) {}
+    return { unlocked: 1, best: {}, won: {}, players: 1 };
+  }
+  function saveProgress() { try { localStorage.setItem(STORE, JSON.stringify(progress)); } catch (e) {} }
+  let progress = loadProgress();
+  for (const k in progress.best) progress.won[k] = true;
+  let nPlayers = Math.max(1, Math.min(4, progress.players | 0 || 1));
+
+  // ---------- État de jeu ----------
+  const cv = document.getElementById("cv"), ctx = cv.getContext("2d");
+  const fogCv = document.createElement("canvas"), fctx = fogCv.getContext("2d");
+  let game = null, C = {}, cs = 20, pad = 4, bw = 400, bh = 400, dpr = 1;
+
+  function readColors() {
+    const st = getComputedStyle(document.documentElement);
+    for (const k of ["path", "trail", "hedge", "hedge-hi", "lantern", "key", "danger", "exit", "fog", "panel", "ink",
+      "mud", "gate", "portal", "mirror", "fly", "p1", "p2", "p3", "p4"]) C[k] = st.getPropertyValue("--" + k).trim();
+  }
+
+  function startLevel(idx) {
+    idx = Math.max(0, Math.min(NL - 1, idx));
+    const m = generate(idx, nPlayers);
+    const cfg = LEVELS[idx];
+    game = {
+      idx, m, multi: nPlayers > 1,
+      players: Array.from({ length: nPlayers }, (_, i) => ({ i, c: 0, rx: 0, ry: 0, held: [], cd: 0, slide: null, keys: 0, done: false, rank: 0, caught: 0, flash: 0, time: 0, inv: !!cfg.invert, light: 0 })),
+      keysLeft: m.keys.slice(),
+      fliesLeft: m.flies.slice(),
+      ghosts: m.ghostStarts.map((c, i) => ({ c, prev: -1, t: 0.6 + i * 0.13, rx: c % m.w, ry: (c / m.w) | 0 })),
+      visited: new Uint8Array(m.w * m.h),
+      time: 0, status: "play", pulse: 0, arrived: 0,
+    };
+    game.visited[0] = 1;
+    hideOverlay();
+    updateMode(); updateHud(); renderLevelGrid(); resize();
+    if (cfg.intro && INTRO[cfg.intro]) {
+      game.status = "intro";
+      const [t, txt] = INTRO[cfg.intro];
+      showOverlay(t, txt, [["C'est parti", () => { hideOverlay(); if (game.status === "intro") game.status = "play"; }, true]]);
+    }
+  }
+
+  function cellOf(c) { return [c % game.m.w, (c / game.m.w) | 0]; }
+  const active = () => game.players.filter(p => !p.done);
+
+  function gateOpen(g) { return ((game.time + g.off) % GATE_PERIOD) < GATE_PERIOD * GATE_OPEN; }
+  function blocked(c, dir) {
+    const m = game.m;
+    if (m.walls[c] & dir) return true;
+    const g = m.gateMap.get(c * 16 + dir);
+    return g ? !gateOpen(g) : false;
+  }
+  function openDirs(c) { return DIRS.filter(d => !blocked(c, d)); }
+  const special = c => { const m = game.m; return c === 0 || c === m.exit || m.keys.includes(c) || m.portalMap.has(c) || m.mirrorSet.has(c) || game.fliesLeft.includes(c); };
+
+  function tryMove(p, dir) {
+    const m = game.m;
+    if (blocked(p.c, dir)) return false;
+    let n = p.c + DX[dir] + DY[dir] * m.w;
+    p.c = n; game.visited[n] = 1;
+    // Portail : on ressort par l'arche jumelle
+    const dest = m.portalMap.get(n);
+    if (dest !== undefined) {
+      n = dest; p.c = dest; game.visited[dest] = 1;
+      const [x, y] = cellOf(dest); p.rx = x; p.ry = y;
+    }
+    const ki = game.keysLeft.indexOf(n);
+    if (ki >= 0) {
+      game.keysLeft.splice(ki, 1); p.keys++;
+      updateHud();
+      if (game.keysLeft.length === 0) {
+        for (const q of active()) if (q !== p && q.c === m.exit) reachExit(q);
+      }
+    }
+    const fi = game.fliesLeft.indexOf(n);
+    if (fi >= 0) { game.fliesLeft.splice(fi, 1); p.light = FLY_TIME; }
+    if (m.mirrorSet.has(n)) { p.inv = !p.inv; updateHud(); }
+    if (game.ghosts.some(g => g.c === n) && n !== 0) { caught(p); return true; }
+    if (n === m.exit && game.keysLeft.length === 0) reachExit(p);
+    return true;
+  }
+
+  function reachExit(p) {
+    if (p.done || game.status !== "play") return;
+    p.done = true; p.held = []; p.slide = null;
+    p.rank = ++game.arrived; p.time = game.time;
+    updateHud();
+    if (active().length === 0) win();
+  }
+
+  function caught(p) {
+    if (!game.multi) { lose("ghost"); return; }
+    p.c = 0; p.rx = 0; p.ry = 0; p.slide = null; p.caught++; p.flash = 1;
+    game.visited[0] = 1;
+    updateHud();
+  }
+
+  function stepPlayer(p, dt) {
+    const m = game.m;
+    p.cd -= dt;
+    let dir = null;
+    if (p.held.length) { const h = p.held[p.held.length - 1]; dir = p.inv ? OPP[h] : h; }
+    else dir = p.slide;
+    if (!dir || p.cd > 0) return;
+    if (tryMove(p, dir)) {
+      p.cd = m.mud[p.c] ? STEP * MUD_SLOW : STEP;
+      if (!p.held.length && p.slide && !p.done) {
+        // Glissade : suit le couloir, s'arrête aux carrefours et aux objets
+        const outs = DIRS.filter(d => !(m.walls[p.c] & d) && d !== OPP[dir]);
+        if (outs.length === 1 && !special(p.c)) p.slide = outs[0];
+        else p.slide = null;
+      }
+    } else if (!p.held.length) {
+      // Une haie fermée arrête la glissade
+      p.slide = null;
+    }
+  }
+
+  function update(dt) {
+    if (!game) return;
+    game.pulse += dt;
+    const m = game.m;
+    if (game.status === "play") {
+      game.time += dt;
+      if (m.limit && game.time >= m.limit) { game.time = m.limit; lose("time"); }
+    }
+    if (game.status === "play") {
+      for (const p of game.players) {
+        if (p.light > 0) p.light = Math.max(0, p.light - dt);
+        if (p.done || game.status !== "play") continue;
+        stepPlayer(p, dt);
+      }
+    }
+    if (game.status === "play") {
+      const gs = m.cfg.gs || 0.4;
+      for (const g of game.ghosts) {
+        g.t -= dt;
+        if (g.t > 0) continue;
+        g.t += gs;
+        const opts = openDirs(g.c).map(d => g.c + DX[d] + DY[d] * m.w);
+        if (!opts.length) continue;
+        let choices = opts.filter(n => n !== g.prev);
+        if (!choices.length) choices = opts;
+        let next = choices[(Math.random() * choices.length) | 0];
+        if (m.cfg.chase) {
+          const [gx, gy] = cellOf(g.c);
+          let best = null, bd = 1e9;
+          for (const p of active()) { const [px, py] = cellOf(p.c); const d = Math.abs(gx - px) + Math.abs(gy - py); if (d < bd) { bd = d; best = [px, py]; } }
+          if (best && bd <= 8 && Math.random() < m.cfg.chase) {
+            const dist = n => { const [x, y] = cellOf(n); return Math.abs(x - best[0]) + Math.abs(y - best[1]); };
+            next = choices.slice().sort((a, b) => dist(a) - dist(b))[0];
+          }
+        }
+        g.prev = g.c; g.c = next;
+        for (const p of active()) {
+          if (p.c === g.c && p.c !== 0) { caught(p); if (game.status !== "play") break; }
+        }
+        if (game.status !== "play") break;
+      }
+    }
+    const k = Math.min(1, dt * 28), kg = Math.min(1, dt * 12);
+    for (const p of game.players) {
+      const [tx, ty] = cellOf(p.c);
+      p.rx += (tx - p.rx) * k; p.ry += (ty - p.ry) * k;
+      if (p.flash > 0) p.flash = Math.max(0, p.flash - dt);
+    }
+    for (const g of game.ghosts) { const [gx, gy] = cellOf(g.c); g.rx += (gx - g.rx) * kg; g.ry += (gy - g.ry) * kg; }
+    if (game.status === "play") updateTime();
+  }
+
+  // ---------- Dessin ----------
+  function resize() {
+    if (!game) return;
+    const m = game.m;
+    const board = document.getElementById("board");
+    const availW = Math.min(board.clientWidth || 600, 720);
+    const availH = Math.max(260, window.innerHeight * 0.72);
+    cs = Math.max(6, Math.floor(Math.min(availW / (m.w + 0.5), availH / (m.h + 0.5))));
+    pad = Math.max(2, Math.round(cs * 0.25));
+    bw = cs * m.w + pad * 2; bh = cs * m.h + pad * 2;
+    dpr = window.devicePixelRatio || 1;
+    cv.style.width = bw + "px"; cv.style.height = bh + "px";
+    cv.width = fogCv.width = Math.round(bw * dpr);
+    cv.height = fogCv.height = Math.round(bh * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    fctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
+  function draw() {
+    if (!game) return;
+    const m = game.m, w = m.w;
+    const X = x => pad + x * cs, Y = y => pad + y * cs;
+    const CX = c => X(c % w) + cs / 2, CY = c => Y((c / w) | 0) + cs / 2;
+    ctx.clearRect(0, 0, bw, bh);
+    ctx.fillStyle = C.path; ctx.fillRect(0, 0, bw, bh);
+
+    // Boue
+    if (m.cfg.mud) {
+      ctx.fillStyle = C.mud; ctx.globalAlpha = 0.5;
+      for (let c = 0; c < w * m.h; c++) if (m.mud[c]) ctx.fillRect(X(c % w), Y((c / w) | 0), cs, cs);
+      ctx.globalAlpha = 0.8;
+      for (let c = 0; c < w * m.h; c++) if (m.mud[c]) {
+        ctx.beginPath(); ctx.arc(CX(c) - cs * 0.18, CY(c) + cs * 0.12, cs * 0.08, 0, Math.PI * 2);
+        ctx.arc(CX(c) + cs * 0.2, CY(c) - cs * 0.15, cs * 0.06, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Traces de pas
+    ctx.fillStyle = C.trail;
+    const tr = Math.max(1.2, cs * 0.09);
+    for (let c = 0; c < w * m.h; c++) if (game.visited[c] && !m.mud[c]) {
+      ctx.beginPath(); ctx.arc(CX(c), CY(c), tr, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Portails (numérotés par paire)
+    m.portalPairs.forEach((pair, pi) => {
+      for (const c of pair) {
+        const cx = CX(c), cy = CY(c), rr = cs * 0.34;
+        ctx.save();
+        ctx.strokeStyle = C.portal; ctx.lineWidth = Math.max(1.5, cs * 0.1);
+        ctx.shadowColor = C.portal; ctx.shadowBlur = cs * 0.5;
+        ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke();
+        ctx.restore();
+        ctx.save();
+        ctx.translate(cx, cy); ctx.rotate(game.pulse * 1.5);
+        ctx.strokeStyle = C.portal; ctx.globalAlpha = 0.6; ctx.lineWidth = Math.max(1, cs * 0.05);
+        ctx.beginPath(); ctx.arc(0, 0, rr * 0.6, 0, Math.PI * 1.3); ctx.stroke();
+        ctx.restore();
+        if (cs >= 13) {
+          ctx.fillStyle = C.portal;
+          ctx.font = `600 ${Math.round(cs * 0.38)}px Outfit, system-ui, sans-serif`;
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText(String(pi + 1), cx, cy + cs * 0.02);
+        }
+      }
+    });
+
+    // Miroirs
+    for (const c of m.mirrors) {
+      const cx = CX(c), cy = CY(c), rr = cs * 0.3;
+      ctx.fillStyle = C.mirror;
+      ctx.beginPath(); ctx.moveTo(cx, cy - rr); ctx.lineTo(cx + rr, cy); ctx.lineTo(cx, cy + rr); ctx.lineTo(cx - rr, cy); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = C.panel; ctx.globalAlpha = 0.6;
+      ctx.beginPath(); ctx.moveTo(cx - rr * 0.2, cy - rr * 0.55); ctx.lineTo(cx + rr * 0.15, cy - rr * 0.2); ctx.lineTo(cx - rr * 0.2, cy + rr * 0.15); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+
+    // Sortie
+    const [ex, ey] = cellOf(m.exit);
+    const open = game.keysLeft.length === 0;
+    ctx.save();
+    ctx.fillStyle = C.exit;
+    ctx.globalAlpha = open ? 0.55 + 0.3 * Math.sin(game.pulse * 4) : 0.3;
+    ctx.fillRect(X(ex) + 1, Y(ey) + 1, cs - 2, cs - 2);
+    ctx.globalAlpha = 1;
+    if (!open) {
+      ctx.strokeStyle = C.exit; ctx.lineWidth = Math.max(1.5, cs * 0.08);
+      for (let i = 1; i <= 3; i++) {
+        const xx = X(ex) + (cs * i) / 4;
+        ctx.beginPath(); ctx.moveTo(xx, Y(ey) + cs * 0.15); ctx.lineTo(xx, Y(ey) + cs * 0.85); ctx.stroke();
+      }
+    }
+    ctx.restore();
+
+    // Clés
+    for (const kc of game.keysLeft) {
+      const cx = CX(kc), cy = CY(kc) + Math.sin(game.pulse * 3 + kc) * cs * 0.05;
+      const rr = cs * 0.17;
+      ctx.strokeStyle = C.key; ctx.lineWidth = Math.max(1.5, cs * 0.08);
+      ctx.beginPath(); ctx.arc(cx - cs * 0.12, cy, rr, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + rr - cs * 0.12, cy); ctx.lineTo(cx + cs * 0.3, cy); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + cs * 0.22, cy); ctx.lineTo(cx + cs * 0.22, cy + cs * 0.12); ctx.stroke();
+    }
+
+    // Haies fixes
+    ctx.strokeStyle = C.hedge; ctx.lineCap = "square";
+    ctx.lineWidth = Math.max(2, cs * 0.26);
+    ctx.beginPath();
+    for (let y = 0; y < m.h; y++) for (let x = 0; x < w; x++) {
+      const v = m.walls[y * w + x];
+      if (v & N) { ctx.moveTo(X(x), Y(y)); ctx.lineTo(X(x + 1), Y(y)); }
+      if (v & W) { ctx.moveTo(X(x), Y(y)); ctx.lineTo(X(x), Y(y + 1)); }
+      if (x === w - 1 && (v & E)) { ctx.moveTo(X(x + 1), Y(y)); ctx.lineTo(X(x + 1), Y(y + 1)); }
+      if (y === m.h - 1 && (v & S)) { ctx.moveTo(X(x), Y(y + 1)); ctx.lineTo(X(x + 1), Y(y + 1)); }
+    }
+    ctx.stroke();
+
+    // Haies mouvantes
+    for (const g of m.gates) {
+      const [x, y] = cellOf(g.c);
+      const x1 = g.d === E ? X(x + 1) : X(x), y1 = g.d === E ? Y(y) : Y(y + 1);
+      const x2 = X(x + 1), y2 = Y(y + 1);
+      const ph = (game.time + g.off) % GATE_PERIOD;
+      const isOpen = ph < GATE_PERIOD * GATE_OPEN;
+      const closing = isOpen && ph > GATE_PERIOD * GATE_OPEN - 0.7;
+      ctx.save();
+      ctx.strokeStyle = C.gate; ctx.lineCap = "butt";
+      if (!isOpen) { ctx.lineWidth = Math.max(2, cs * 0.24); }
+      else {
+        ctx.lineWidth = Math.max(1, cs * 0.07);
+        ctx.setLineDash([Math.max(2, cs * 0.12), Math.max(2, cs * 0.12)]);
+        ctx.globalAlpha = closing ? (Math.sin(game.pulse * 30) > 0 ? 1 : 0.2) : 0.45;
+      }
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+      ctx.restore();
+    }
+
+    // Joueurs (lanternes), écartés quand ils partagent une case
+    const act = active();
+    const byCell = {};
+    act.forEach(p => (byCell[p.c] = byCell[p.c] || []).push(p));
+    const lights = [];
+    for (const p of act) {
+      const grp = byCell[p.c];
+      let ox = 0, oy = 0, rad = cs * 0.3;
+      if (grp.length > 1) {
+        const a = (grp.indexOf(p) / grp.length) * Math.PI * 2 - Math.PI / 2;
+        ox = Math.cos(a) * cs * 0.18; oy = Math.sin(a) * cs * 0.18; rad = cs * 0.2;
+      }
+      const cx = X(p.rx) + cs / 2 + ox, cy = Y(p.ry) + cs / 2 + oy;
+      lights.push([cx, cy, p.light > 0 ? FLY_BOOST * Math.min(1, p.light / 1.5 + 0.5) : 1]);
+      const col = game.multi ? C["p" + (p.i + 1)] : C.lantern;
+      ctx.save();
+      ctx.shadowColor = col; ctx.shadowBlur = cs * 0.9;
+      ctx.fillStyle = col;
+      ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      if (p.inv) {
+        ctx.save();
+        ctx.strokeStyle = C.mirror; ctx.lineWidth = Math.max(1, cs * 0.06);
+        ctx.setLineDash([Math.max(2, cs * 0.1), Math.max(2, cs * 0.08)]);
+        ctx.beginPath(); ctx.arc(cx, cy, rad + cs * 0.1, game.pulse, game.pulse + Math.PI * 2); ctx.stroke();
+        ctx.restore();
+      }
+      if (p.flash > 0) {
+        ctx.strokeStyle = C.danger; ctx.lineWidth = Math.max(1.5, cs * 0.08);
+        ctx.globalAlpha = p.flash;
+        ctx.beginPath(); ctx.arc(cx, cy, rad + cs * (1 - p.flash) * 0.8 + 2, 0, Math.PI * 2); ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      if (game.multi && rad >= 7) {
+        ctx.fillStyle = C.panel;
+        ctx.font = `600 ${Math.round(rad * 1.2)}px Outfit, system-ui, sans-serif`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(String(p.i + 1), cx, cy + rad * 0.06);
+      } else {
+        ctx.fillStyle = C.panel;
+        ctx.beginPath(); ctx.arc(cx - rad * 0.27, cy - rad * 0.27, rad * 0.3, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    // Brume : un trou de lumière autour de chaque joueur
+    if (m.cfg.fog) {
+      fctx.globalCompositeOperation = "source-over";
+      fctx.clearRect(0, 0, bw, bh);
+      fctx.fillStyle = hexA(C.fog, 0.97);
+      fctx.fillRect(0, 0, bw, bh);
+      fctx.globalCompositeOperation = "destination-out";
+      for (const [lx, ly, boost] of lights) {
+        const r1 = m.cfg.fog * cs * boost, r0 = r1 * 0.45;
+        const g = fctx.createRadialGradient(lx, ly, r0, lx, ly, r1);
+        g.addColorStop(0, "rgba(0,0,0,1)");
+        g.addColorStop(1, "rgba(0,0,0,0)");
+        fctx.fillStyle = g;
+        fctx.beginPath(); fctx.arc(lx, ly, r1, 0, Math.PI * 2); fctx.fill();
+      }
+      fctx.globalCompositeOperation = "source-over";
+      ctx.drawImage(fogCv, 0, 0, bw, bh);
+    }
+
+    // Lucioles (visibles dans la nuit)
+    for (const c of game.fliesLeft) {
+      const t = game.pulse * 2 + c;
+      const cx = CX(c) + Math.cos(t) * cs * 0.12, cy = CY(c) + Math.sin(t * 1.3) * cs * 0.12;
+      ctx.save();
+      ctx.shadowColor = C.fly; ctx.shadowBlur = cs * 0.8;
+      ctx.fillStyle = C.fly; ctx.globalAlpha = 0.7 + 0.3 * Math.sin(t * 3);
+      ctx.beginPath(); ctx.arc(cx, cy, Math.max(2, cs * 0.14), 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+
+    // Veilleurs (visibles même dans la brume)
+    for (const g of game.ghosts) drawGhost(X(g.rx) + cs / 2, Y(g.ry) + cs / 2, cs * 0.34);
+  }
+
+  function drawGhost(cx, cy, r) {
+    ctx.save();
+    ctx.shadowColor = C.danger; ctx.shadowBlur = r * 1.4;
+    ctx.fillStyle = C.danger;
+    ctx.beginPath();
+    ctx.arc(cx, cy - r * 0.15, r, Math.PI, 0);
+    ctx.lineTo(cx + r, cy + r * 0.85);
+    const seg = (2 * r) / 3;
+    for (let i = 0; i < 3; i++) {
+      const x0 = cx + r - i * seg;
+      ctx.quadraticCurveTo(x0 - seg / 2, cy + r * 0.45, x0 - seg, cy + r * 0.85);
+    }
+    ctx.closePath(); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = C.panel;
+    ctx.beginPath(); ctx.arc(cx - r * 0.35, cy - r * 0.2, r * 0.2, 0, Math.PI * 2); ctx.arc(cx + r * 0.35, cy - r * 0.2, r * 0.2, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function hexA(hex, a) {
+    const h = hex.replace("#", "");
+    const v = h.length === 3 ? h.split("").map(x => x + x).join("") : h;
+    const n = parseInt(v, 16);
+    return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+  }
+
+  // ---------- Interface ----------
+  const $ = id => document.getElementById(id);
+  const fmt = s => s.toFixed(1).replace(".", ",") + " s";
+  const ord = n => (n === 1 ? "1er" : n + "e");
+
+  function updateMode() {
+    for (let n = 1; n <= 4; n++) $("mode" + n).setAttribute("aria-pressed", String(n === nPlayers));
+    $("helpSolo").hidden = nPlayers > 1;
+    $("helpMulti").hidden = nPlayers === 1;
+    $("players").hidden = nPlayers === 1;
+  }
+
+  function updateHud() {
+    const cfg = LEVELS[game.idx], m = game.m;
+    const ch = Math.floor(game.idx / 10);
+    $("lvlEyebrow").textContent = `Chapitre ${ch + 1} · Niveau ${game.idx + 1} / ${NL}`;
+    $("lvlName").textContent = cfg.name;
+    const total = m.keys.length;
+    $("keysStat").hidden = total === 0;
+    $("keysLab").textContent = game.multi ? "Clés de l'équipe" : "Clés";
+    $("keys").textContent = `${total - game.keysLeft.length} / ${total}`;
+    $("timeLab").textContent = m.limit ? "Reste" : "Temps";
+    const tags = [`<span class="tag">${m.w} × ${m.h}</span>`];
+    if (total) tags.push(`<span class="tag key">${total} clé${total > 1 ? "s" : ""}${game.multi ? " à partager" : ""}</span>`);
+    if (cfg.fog) tags.push(`<span class="tag fog">${cfg.fog < 3 ? "Nuit noire" : "Brume"}</span>`);
+    if (cfg.flies) tags.push(`<span class="tag fly">${cfg.flies} lucioles</span>`);
+    if (m.limit) tags.push(`<span class="tag timer">Cadran : ${m.limit} s</span>`);
+    if (m.portalPairs.length) tags.push(`<span class="tag portal">${m.portalPairs.length} paire${m.portalPairs.length > 1 ? "s" : ""} de portails</span>`);
+    if (cfg.mud) tags.push(`<span class="tag mud">Boue</span>`);
+    if (cfg.gates) tags.push(`<span class="tag gate">Haies mouvantes</span>`);
+    if (cfg.mirrors) tags.push(`<span class="tag mirror">${cfg.mirrors} miroirs</span>`);
+    if (cfg.ghosts) tags.push(`<span class="tag ghost">${cfg.ghosts} veilleurs${cfg.chase ? " qui traquent" : ""}</span>`);
+    if (!game.multi && game.players[0].inv) tags.push(`<span class="tag inv">Commandes inversées</span>`);
+    $("tags").innerHTML = tags.join("");
+    if (game.multi) {
+      $("players").innerHTML = game.players.map(p => {
+        const st = p.done ? `Sorti ${ord(p.rank)}` : (game.keysLeft.length === 0 ? "Vers la grille" : "En route");
+        return `<div class="pl${p.done ? " done" : ""}"><span class="dot" style="background:var(--p${p.i + 1})"></span>` +
+          `<span class="meta"><span class="nm">${PLAYERS[p.i].name}</span><span class="ct">${PLAYERS[p.i].ctrl}${p.inv && !p.done ? ' · <span class="inv">inversé</span>' : ""}</span></span>` +
+          `<span class="st"><b>${p.keys}</b> clé${p.keys > 1 ? "s" : ""}<br>${st}</span></div>`;
+      }).join("");
+    }
+    updateTime();
+  }
+  function updateTime() {
+    const m = game.m, el = $("time");
+    if (m.limit) {
+      const left = Math.max(0, m.limit - game.time);
+      el.textContent = fmt(left);
+      el.classList.toggle("warn", left < 10);
+    } else { el.textContent = fmt(game.time); el.classList.remove("warn"); }
+  }
+
+  function renderLevelGrid() {
+    const root = $("levels");
+    root.querySelectorAll(".chap").forEach(n => n.remove());
+    CHAPTERS.forEach((ch, ci) => {
+      const sec = document.createElement("div");
+      sec.className = "chap";
+      let wonCount = 0;
+      for (let i = ci * 10; i < ci * 10 + 10; i++) if (progress.won[i]) wonCount++;
+      sec.innerHTML = `<div class="chap-h"><span class="eyebrow">Chapitre ${ci + 1}</span><b>${ch.name}</b><span class="desc">${ch.desc}</span><span class="cnt">${wonCount} / 10</span></div>`;
+      const g = document.createElement("div");
+      g.className = "grid";
+      for (let i = ci * 10; i < Math.min(NL, ci * 10 + 10); i++) {
+        const b = document.createElement("button");
+        b.type = "button"; b.id = "lv" + (i + 1);
+        const locked = i + 1 > progress.unlocked;
+        b.className = "lv" + (game && game.idx === i ? " cur" : "") + (progress.won[i] ? " won" : "");
+        b.disabled = locked;
+        b.title = LEVELS[i].name;
+        const best = progress.best[i];
+        b.innerHTML = `<span class="n">${i + 1}</span><span class="bt">${locked ? "fermé" : best ? fmt(best) : progress.won[i] ? "fait" : "à faire"}</span>`;
+        b.addEventListener("click", () => startLevel(i));
+        g.appendChild(b);
+      }
+      sec.appendChild(g);
+      root.appendChild(sec);
+    });
+  }
+
+  function showOverlay(title, text, buttons, list) {
+    $("ovTitle").textContent = title; $("ovText").textContent = text;
+    const ol = $("ovList");
+    ol.hidden = !list; ol.innerHTML = list || "";
+    const row = $("ovBtns"); row.innerHTML = "";
+    buttons.forEach(([label, fn, primary]) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = label; if (primary) b.className = "primary";
+      b.addEventListener("click", fn); row.appendChild(b);
+    });
+    $("ov").hidden = false;
+    const first = row.querySelector(".primary") || row.firstChild;
+    if (first) first.focus();
+  }
+  function hideOverlay() { $("ov").hidden = true; }
+
+  function win() {
+    game.status = "won";
+    game.players.forEach(p => { p.held = []; p.slide = null; });
+    const i = game.idx, t = game.time;
+    progress.unlocked = Math.max(progress.unlocked, Math.min(NL, i + 2));
+    progress.won[i] = true;
+    const last = i === NL - 1;
+    const endOfChapter = (i + 1) % 10 === 0 && !last;
+    const nextTxt = last ? "" : endOfChapter
+      ? ` Chapitre ${Math.floor(i / 10) + 1} terminé. Place au chapitre suivant : « ${CHAPTERS[Math.floor(i / 10) + 1].name} ».`
+      : ` Le suivant, « ${LEVELS[i + 1].name} », est plus retors.`;
+    const btns = last
+      ? [["Rejouer ce niveau", () => startLevel(i)], ["Retour au jardin 1", () => startLevel(0), true]]
+      : [["Rejouer", () => startLevel(i)], [endOfChapter ? "Chapitre suivant" : "Jardin suivant", () => startLevel(i + 1), true]];
+
+    if (game.multi) {
+      saveProgress(); renderLevelGrid();
+      const list = game.players.slice().sort((a, b) => a.rank - b.rank).map(p =>
+        `<li><span class="r">${ord(p.rank)}</span><span class="dot" style="background:var(--p${p.i + 1})"></span>` +
+        `<span>${PLAYERS[p.i].name}</span><span class="x">${p.keys} clé${p.keys > 1 ? "s" : ""} · ${fmt(p.time)}${p.caught ? " · attrapé " + p.caught + "×" : ""}</span></li>`).join("");
+      const title = last ? "Le centre du monde, ensemble" : `Jardin ${i + 1} traversé ensemble`;
+      showOverlay(title, `Toute l'équipe est sortie en ${fmt(t)}.${nextTxt} Ordre d'arrivée :`, btns, list);
+      return;
+    }
+    const prev = progress.best[i];
+    if (!prev || t < prev) progress.best[i] = Math.round(t * 10) / 10;
+    saveProgress(); renderLevelGrid();
+    const rec = !prev || t < prev ? "Nouveau record." : `Record : ${fmt(prev)}.`;
+    if (last) showOverlay("Le centre du monde", `Tu as traversé les soixante-dix jardins. Dernier niveau en ${fmt(t)}. ${rec}`, btns);
+    else showOverlay(`Jardin ${i + 1} traversé`, `Temps : ${fmt(t)}. ${rec}${nextTxt}`, btns);
+  }
+  function lose(why) {
+    if (game.status !== "play") return;
+    game.status = "lost";
+    game.players.forEach(p => { p.held = []; p.slide = null; });
+    const i = game.idx;
+    if (why === "ghost") showOverlay("Un veilleur t'a attrapé", "Tu repars de l'entrée du jardin. Observe leur ronde avant de foncer.", [["Réessayer", () => startLevel(i), true]]);
+    else showOverlay("Le cadran a tourné", game.multi ? "Temps écoulé pour l'équipe. Répartissez-vous les clés pour aller plus vite." : "Temps écoulé. Repère le chemin des clés, puis cours vers la grille.", [["Réessayer", () => startLevel(i), true]]);
+  }
+
+  // ---------- Contrôles ----------
+  function control(k) {
+    if (!game) return null;
+    if (!game.multi) { const d = SOLO_MAP[k]; return d ? [0, d] : null; }
+    for (let i = 0; i < game.players.length; i++) { const d = PLAYERS[i].map[k]; if (d) return [i, d]; }
+    return null;
+  }
+  function press(i, dir) {
+    const p = game && game.players[i];
+    if (!p || p.done || game.status !== "play") return;
+    p.slide = null;
+    if (!p.held.includes(dir)) { p.held.push(dir); p.cd = Math.min(p.cd, 0); }
+  }
+  function release(i, dir) {
+    const p = game && game.players[i];
+    if (p) p.held = p.held.filter(d => d !== dir);
+  }
+  const keyName = e => (e.key.length === 1 ? e.key.toLowerCase() : e.key);
+
+  window.addEventListener("keydown", e => {
+    const k = keyName(e);
+    if (k === "r" && !e.ctrlKey && !e.metaKey) { if (game) startLevel(game.idx); return; }
+    const t = control(k);
+    if (!t) return;
+    e.preventDefault();
+    if (!e.repeat) press(t[0], t[1]);
+  });
+  window.addEventListener("keyup", e => {
+    const t = control(keyName(e));
+    if (t) release(t[0], t[1]);
+  });
+  window.addEventListener("blur", () => { if (game) game.players.forEach(p => { p.held = []; }); });
+
+  document.querySelectorAll(".dpad button").forEach(b => {
+    const dir = +b.dataset.dir;
+    b.addEventListener("pointerdown", e => { e.preventDefault(); b.setPointerCapture(e.pointerId); press(0, dir); });
+    const up = () => release(0, dir);
+    b.addEventListener("pointerup", up); b.addEventListener("pointercancel", up); b.addEventListener("lostpointercapture", up);
+  });
+
+  // Glisser sur le plateau : le joueur 1 court jusqu'au prochain carrefour
+  let sw = null;
+  cv.addEventListener("pointerdown", e => { sw = { x: e.clientX, y: e.clientY }; });
+  cv.addEventListener("pointerup", e => {
+    if (!sw || !game || game.status !== "play") { sw = null; return; }
+    const dx = e.clientX - sw.x, dy = e.clientY - sw.y; sw = null;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < 18) return;
+    const p = game.players[0];
+    if (p.done) return;
+    const raw = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? E : W) : (dy > 0 ? S : N);
+    p.slide = p.inv ? OPP[raw] : raw;
+    p.cd = Math.min(p.cd, 0);
+  });
+
+  $("restart").addEventListener("click", () => { if (game) startLevel(game.idx); });
+  for (let n = 1; n <= 4; n++) {
+    $("mode" + n).addEventListener("click", () => {
+      nPlayers = n; progress.players = n; saveProgress();
+      startLevel(game ? game.idx : 0);
+    });
+  }
+
+  // ---------- Thème ----------
+  readColors();
+  try { matchMedia("(prefers-color-scheme: dark)").addEventListener("change", readColors); } catch (e) {}
+  new MutationObserver(readColors).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class", "style"] });
+  window.addEventListener("resize", resize);
+
+  // ---------- Boucle ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    update(dt); draw();
+    requestAnimationFrame(frame);
+  }
+
+  function start(data) {
+    if (data && Number.isInteger(data.players)) nPlayers = Math.max(1, Math.min(4, data.players));
+    const lvl = data && Number.isInteger(data.level) ? data.level : Math.min(progress.unlocked - 1, NL - 1);
+    startLevel(lvl);
+    requestAnimationFrame(frame);
+  }
+  window.claude?.hot?.snapshot?.(() => ({ level: game ? game.idx : 0, players: nPlayers }));
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+
+  window.__dedale = { LEVELS, generate, bfs, get game() { return game; } };
+})();
+</script>
+</body>
+</html>
